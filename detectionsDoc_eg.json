@@ -1,0 +1,33 @@
+{
+  "location_id": "ObjectId",
+  "image_id": "ObjectId",
+  "detections": [
+    {
+      "box": [x1, y1, x2, y2],
+      "confidence": 0.89,
+      "area_cm2": 45.32,
+      "fractal_dimension": 1.67,
+      "severity_level": "Critical",
+      "pixel_count": 15420
+    }
+  ],
+  "aruco_metadata": {
+    "detected": true,
+    "marker_id": 10,
+    "reference_scale_cm": 30
+  }
+}
+
+// add area_px
+
+
+{
+  "detection_id": "uuid",
+  "area_px": 15420,           // Tu dato de auditoría
+  "area_cm2": 45.32,          // Calculado con regla de 30cm
+  "fractal_dimension": 1.67,  // Severidad geométrica
+  "confidence": 0.89,
+  "severity_label": "High"    // Inferencia basada en D y Área
+}
+
+
