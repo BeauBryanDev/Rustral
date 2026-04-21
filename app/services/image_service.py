@@ -4,6 +4,12 @@ from bson.objectid import ObjectId
 from bson.errors import InvalidId
 
 from app.core.database import db_instance
+from app.core.exceptions import (
+    NotFoundException,
+    InvalidObjectIdException,
+    DatabaseException,
+    InternalServerException,
+)
 from app.models.images import ImageDocument # Assuming ImageDocument exists in app/models/images
 
 
@@ -81,7 +87,7 @@ class ImageService:
             return []
         
 
-    def get_image_by_id(self, image_id: str) -> Optional[Dict[str, Any]]:
+    def get_image_by_id(self, image_id: str) -> Dict[str, Any]:
         """
         Retrieves a single image document by its unique identifier.
 
@@ -89,30 +95,37 @@ class ImageService:
             image_id (str): The string representation of the document ObjectId.
 
         Returns:
-            Optional[Dict[str, Any]]: The serialized image document, or None if not found.
+            Dict[str, Any]: The serialized image document.
+            
+        Raises:
+            InvalidObjectIdException: If image_id is not a valid ObjectId format.
+            NotFoundException: If no image exists with the given ID.
+            DatabaseException: If a database error occurs.
         """
         try:
+            # Validate ObjectId format
             object_id = ObjectId(image_id)
             
+        except InvalidId:
+            logger.warning(f"Invalid ObjectId format provided: {image_id}")
+            raise InvalidObjectIdException(field="image_id", value=image_id)
+        
+        try:
             document = self.collection.find_one({"_id": object_id})
             
-            if document:
-                
-                return ImageDocument.from_dict(document).to_dict()
+            if not document:
+                logger.info(f"Image not found with ID: {image_id}")
+                raise NotFoundException(resource="Image", identifier=image_id)
             
-            return None
+            return ImageDocument.from_dict(document).to_dict()
         
-        except InvalidId:
-            
-            logger.warning(f"Invalid ObjectId format provided: {image_id}")
-            
-            return None
+        except NotFoundException:
+            # Re-raise NotFoundException as-is
+            raise
         
         except Exception as e:
-            
             logger.error(f"Error fetching image by ID {image_id}: {e}")
-            
-            return None
+            raise DatabaseException(operation="get_image_by_id")
 
     def get_image_by_location(self, location_id: str) -> List[Dict[str, Any]]:
         """

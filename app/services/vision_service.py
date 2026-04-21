@@ -160,6 +160,7 @@ class VisionService:
 
         return parsed_detections
 
+
 # Singleton instantiation for service injection
 vision_service_instance = VisionService()
 
