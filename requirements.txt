@@ -1,28 +1,28 @@
-# --- Core Web Framework ---
+#  Core Web Framework ---
 Flask==3.0.3
 Flask-CORS==4.0.1
 Flask-JWT-Extended==4.6.0
 gunicorn==22.0.0
 
-# --- Database & NoSQL ---
+# Database & NoSQL ---
 #pymongo==4.7.2
 motor==3.4.0
 
-# --- AI & Computer Vision ---
+#  AI & Computer Vision ---
 onnxruntime==1.19.2
 numpy==1.26.4
 opencv-python-headless==4.10.0.84
 Pillow==11.1.0
 
-# --- Utilities ---
+#   Utilities ---
 python-dotenv==1.0.1
 python-slugify==8.0.4 
 
-# --- Security & Hashing ---
+# - Security & Hashing ---
 python-jose[cryptography]==3.3.0
 passlib[bcrypt]==1.7.4
 
-# --- Testing & Quality ---
+#   Testing & Quality ---
 pytest==7.4.0
 pytest-asyncio==0.21.0
 pytest-cov==4.1.0

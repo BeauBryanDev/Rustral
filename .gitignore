@@ -210,3 +210,7 @@ __marimo__/
 notes.md
 notes.txt
 
+# Ignore onnx model 
+*.onnx
+
+
