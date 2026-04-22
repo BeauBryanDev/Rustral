@@ -1,5 +1,6 @@
 import logging
 import numpy as np
+from app.core.exceptions import BadRequestException, InternalServerException
 
 logger = logging.getLogger(__name__)
 
@@ -79,7 +80,7 @@ class FractalService:
             active_boxes = reshaped_grid.any(axis=(1, 3))
             box_counts.append(np.sum(active_boxes))
 
-        # 4. Log-Log Linear Regression
+        #  Log-Log Linear Regression
         # Convert lists to numpy arrays and filter out invalid zero counts to avoid log(0) errors
         sizes_array = np.array(box_sizes, dtype=np.float64)
         counts_array = np.array(box_counts, dtype=np.float64)

@@ -11,7 +11,12 @@ from app.core.exceptions import (
     InternalServerException,
 )
 from app.models.images import ImageDocument # Assuming ImageDocument exists in app/models/images
-
+from app.core.exceptions import (
+    NotFoundException,
+    InvalidObjectIdException,
+    DatabaseException,
+    BadRequestException,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -36,31 +41,26 @@ class ImageService:
 
         Returns:
             List[Dict[str, Any]]: A list of serialized image documents.
+            
+        Raises:
+            InvalidObjectIdException: If user_id is not a valid ObjectId format.
+            DatabaseException: If a database error occurs.
         """
         try:
-            query = {"user_id": ObjectId(user_id)}
-            
+            object_id = ObjectId(user_id)
+        except InvalidId:
+            logger.warning(f"Invalid User ObjectId format provided: {user_id}")
+            raise InvalidObjectIdException(field="user_id", value=user_id)
+        
+        try:
+            query = {"user_id": object_id}
             cursor = self.collection.find(query)
-            
-            images = []
-            
-            for document in cursor:
-                
-                images.append(ImageDocument.from_dict(document).to_dict())
-                
+            images = [ImageDocument.from_dict(document).to_dict() for document in cursor]
             return images
         
-        except InvalidId:
-            
-            logger.warning(f"Invalid User ObjectId format provided: {user_id}")
-            
-            return []
-        
         except Exception as e:
-            
             logger.error(f"Error fetching images by user {user_id}: {e}")
-            
-            return []
+            raise DatabaseException(operation="get_image_by_user")
 
     def get_all_images(self) -> List[Dict[str, Any]]:
         """
@@ -68,23 +68,18 @@ class ImageService:
 
         Returns:
             List[Dict[str, Any]]: A list of all serialized image documents.
+            
+        Raises:
+            DatabaseException: If a database error occurs.
         """
         try:
             cursor = self.collection.find({})
-            
-            images = []
-            
-            for document in cursor:
-                
-                images.append(ImageDocument.from_dict(document).to_dict())
-                
+            images = [ImageDocument.from_dict(document).to_dict() for document in cursor]
             return images
         
         except Exception as e:
-            
             logger.error(f"Error fetching all images: {e}")
-            
-            return []
+            raise DatabaseException(operation="get_all_images")
         
 
     def get_image_by_id(self, image_id: str) -> Dict[str, Any]:
@@ -136,68 +131,61 @@ class ImageService:
 
         Returns:
             List[Dict[str, Any]]: A list of serialized image documents.
+            
+        Raises:
+            InvalidObjectIdException: If location_id is not a valid ObjectId format.
+            DatabaseException: If a database error occurs.
         """
         try:
-            
-            query = {"location_id": ObjectId(location_id)}
-            
+            object_id = ObjectId(location_id)
+        except InvalidId:
+            logger.warning(f"Invalid Location ObjectId format provided: {location_id}")
+            raise InvalidObjectIdException(field="location_id", value=location_id)
+        
+        try:
+            query = {"location_id": object_id}
             cursor = self.collection.find(query)
-            
-            images = []
-            
-            for document in cursor:     
-                
-                images.append(ImageDocument.from_dict(document).to_dict())
-                
+            images = [ImageDocument.from_dict(document).to_dict() for document in cursor]
             return images
         
-        except InvalidId:
-            
-            logger.warning(f"Invalid Location ObjectId format provided: {location_id}")
-            
-            return []
-        
         except Exception as e:
-            
             logger.error(f"Error fetching images by location {location_id}: {e}")
-            
-            return []
+            raise DatabaseException(operation="get_image_by_location")
 
 
-    def delete_image(self, image_id: str) -> bool:
+    def delete_image(self, image_id: str) -> None:
         """
         Permanently removes an image document from the database.
 
         Args:
             image_id (str): The string representation of the document ObjectId.
-
-        Returns:
-            bool: True if the document was successfully deleted, False otherwise.
+            
+        Raises:
+            InvalidObjectIdException: If image_id is not a valid ObjectId format.
+            NotFoundException: If no image exists with the given ID.
+            DatabaseException: If a database error occurs.
         """
         try:
             object_id = ObjectId(image_id)
-            
+        except InvalidId:
+            logger.warning(f"Invalid ObjectId format provided for deletion: {image_id}")
+            raise InvalidObjectIdException(field="image_id", value=image_id)
+        
+        try:
             result = self.collection.delete_one({"_id": object_id})
             
-            if result.deleted_count > 0:
-                
-                logger.info(f"Successfully deleted image with ID: {image_id}")
-                
-                return True
+            if result.deleted_count == 0:
+                logger.info(f"Image not found with ID: {image_id}")
+                raise NotFoundException(resource="Image", identifier=image_id)
             
-            return False
+            logger.info(f"Successfully deleted image with ID: {image_id}")
         
-        except InvalidId:
-            
-            logger.warning(f"Invalid ObjectId format provided for deletion: {image_id}")
-            
-            return False
+        except NotFoundException:
+            raise
         
         except Exception as e:
-            
             logger.error(f"Error deleting image with ID {image_id}: {e}")
-            
-            return False
+            raise DatabaseException(operation="delete_image")
 
 
 # Singleton instantiation for route injection

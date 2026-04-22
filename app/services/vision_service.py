@@ -11,6 +11,15 @@ from app.utils.image_utils import (
     calculate_real_area,
     DEFAULT_REFERENCE_CM
 )
+from app.core.exceptions import (
+    NotFoundException,
+    InvalidObjectIdException,
+    DatabaseException,
+    BadRequestException,
+    ExternalServiceException,
+    InternalServerException,
+)
+
 
 logger = logging.getLogger(__name__)
 
@@ -30,6 +39,9 @@ class VisionService:
         """
         Initializes the ONNX Runtime session and loads the model into memory.
         Configures execution providers to prioritize GPU if available, falling back to CPU.
+        
+        Raises:
+            ExternalServiceException: If ONNX model fails to load.
         """
         try:
             # Try to use CUDA if available, otherwise fallback to CPU
@@ -43,7 +55,7 @@ class VisionService:
             logger.info(f"Successfully initialized ONNX session with model: {Config.ONNX_MODEL_PATH}")
         except Exception as error:
             logger.critical(f"Failed to load ONNX model. Ensure the path is correct. Error: {error}")
-            raise
+            raise ExternalServiceException(service="ONNX Runtime", error_code="ONNX_LOAD_FAILED")
 
     # Entry point for image analysis
     def analyze_corrosion(self, image_np: np.ndarray) -> Dict[str, Any]:
@@ -56,54 +68,68 @@ class VisionService:
         Returns:
             Dict[str, Any]: A structured dictionary containing inference time, ArUco metadata, 
                             and a list of individual corrosion detections.
+                            
+        Raises:
+            BadRequestException: If image_np is None or not a valid numpy array.
+            InternalServerException: If inference or processing fails.
         """
-        start_time = time.perf_counter()
-
-        #  Metrology: Detect spatial scale using ArUco
-        cm_per_pixel = detect_aruco_scale(image_np, reference_cm=DEFAULT_REFERENCE_CM)
-        aruco_detected = cm_per_pixel is not None
-
-        #  Preprocessing: Format image for YOLOv8 (1, 3, 640, 640)
-        tensor_img, scale_ratio, (pad_w, pad_h) = preprocess_for_yolo(image_np)
-
-        # Inference: Execute ONNX graph
-        # (boxes + mask weights) and proto (mask prototypes)
-        inference_start = time.perf_counter()
-        outputs = self.session.run(self.output_names, {self.input_name: tensor_img})
-        inference_end = time.perf_counter()
-
-        inference_time_ms = (inference_end - inference_start) * 1000.0
-
-        # Postprocessing: Decode YOLO outputs to extract bounding boxes and masks
-        raw_predictions = outputs[0]
-        mask_prototypes = outputs[1] if len(outputs) > 1 else None
-        # outputs[0] -> (1, 116, 8400)  boxes + confidence + 32 mask coefficients
-        # outputs[1] -> (1,  32, 160, 160) mask prototypes
-        original_hw = image_np.shape[:2]  # (H, W) before letterboxing
-        detections  = self._extract_detections(
-            raw_predictions,
-            mask_prototypes,
-            scale_ratio,
-            pad_w,
-            pad_h,
-            original_hw,
-            cm_per_pixel
-        )
-        total_time_ms = (time.perf_counter() - start_time) * 1000
+        if image_np is None:
+            raise BadRequestException(message="Image array cannot be None", error_code="NULL_IMAGE")
         
-        logger.info(f"Image analysis completed in {total_time_ms:.2f}ms (Inference: {inference_time_ms:.2f}ms)")
+        if not isinstance(image_np, np.ndarray):
+            raise BadRequestException(message="Input must be a numpy array", error_code="INVALID_IMAGE_TYPE")
+        
+        try:
+            start_time = time.perf_counter()
 
-        #  Structure the final payload
-        return {
-            "inference_time_ms": round(inference_time_ms, 2),
-            "aruco_metadata": {
-                "detected": aruco_detected,
-                "marker_id": 42 if aruco_detected else None,
-                "reference_scale_cm": DEFAULT_REFERENCE_CM if aruco_detected else None,
-                "cm_per_pixel": cm_per_pixel
-            },
-            "detections": detections
-        }
+            #  Metrology: Detect spatial scale using ArUco
+            cm_per_pixel = detect_aruco_scale(image_np, reference_cm=DEFAULT_REFERENCE_CM)
+            aruco_detected = cm_per_pixel is not None
+
+            #  Preprocessing: Format image for YOLOv8 (1, 3, 640, 640)
+            tensor_img, scale_ratio, (pad_w, pad_h) = preprocess_for_yolo(image_np)
+
+            # Inference: Execute ONNX graph
+            inference_start = time.perf_counter()
+            outputs = self.session.run(self.output_names, {self.input_name: tensor_img})
+            inference_end = time.perf_counter()
+
+            inference_time_ms = (inference_end - inference_start) * 1000.0
+
+            # Postprocessing: Decode YOLO outputs to extract bounding boxes and masks
+            raw_predictions = outputs[0]
+            mask_prototypes = outputs[1] if len(outputs) > 1 else None
+            original_hw = image_np.shape[:2]  # (H, W) before letterboxing
+            detections = self._extract_detections(
+                raw_predictions,
+                mask_prototypes,
+                scale_ratio,
+                pad_w,
+                pad_h,
+                original_hw,
+                cm_per_pixel
+            )
+            total_time_ms = (time.perf_counter() - start_time) * 1000
+            
+            logger.info(f"Image analysis completed in {total_time_ms:.2f}ms (Inference: {inference_time_ms:.2f}ms)")
+
+            #  Structure the final payload
+            return {
+                "inference_time_ms": round(inference_time_ms, 2),
+                "aruco_metadata": {
+                    "detected": aruco_detected,
+                    "marker_id": 42 if aruco_detected else None,
+                    "reference_scale_cm": DEFAULT_REFERENCE_CM if aruco_detected else None,
+                    "cm_per_pixel": cm_per_pixel
+                },
+                "detections": detections
+            }
+        
+        except (BadRequestException, ExternalServiceException):
+            raise
+        except Exception as e:
+            logger.error(f"Error during image analysis: {e}", exc_info=True)
+            raise InternalServerException(message="Image analysis failed", error_code="ANALYSIS_FAILED")
 
 
     def _extract_detections(
