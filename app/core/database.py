@@ -1,3 +1,4 @@
+import os
 from pymongo import MongoClient
 from pymongo.errors import ConnectionFailure
 from app.config import Config
@@ -9,6 +10,7 @@ class Database:
     _instance = None
     _client = None
     _db = None
+    _connected = False
 
     def __new__(cls):
         """
@@ -16,38 +18,56 @@ class Database:
         the Database class is created.
         """
         if cls._instance is None:
+            
             cls._instance = super(Database, cls).__new__(cls)
-            cls._instance._connect()
+            
+            # Only connect immediately if not in test environment
+            if os.getenv('PYTEST_CURRENT_TEST') is None:
+                
+                cls._instance._connect()
+                
         return cls._instance
+
 
     def _connect(self):
         """
         Set up the connection to MongoDB using the URI from the configuration.
         """
+        if self._connected:
+            return
+            
         try:
             # Start up the client 
-            self._client = MongoClient(Config.MONGO_URI, serverSelectionTimeoutMS=5000)
+            self._client = MongoClient(Config.MONGODB_URI, serverSelectionTimeoutMS=5000)
             
             # Force a connection to check if MongoDB is reachable
             self._client.admin.command('ping')
             
             # Extract the database name from the URI and connect to it
-            db_name = Config.MONGO_URI.split('/')[-1].split('?')[0] or "fractorust_db"
+            db_name = Config.MONGODB_URI.split('/')[-1].split('?')[0] or "fractorust_db"
             self._db = self._client[db_name]
+            self._connected = True
             
-            logging.info(f"🔌 Conexión a MongoDB establecida: {Config.MONGO_URI}")
+            logging.info(f"🔌 Conexión a MongoDB establecida: {Config.MONGODB_URI}")
             
         except ConnectionFailure as e:
             
             logging.error(f"Error crítico: No se pudo conectar a MongoDB. {e}")
             raise e
 
+    def ensure_connected(self):
+        """
+        Ensure the database connection is established.
+        """
+        if not self._connected:
+            self._connect()
 
     @property
     def db(self):
         """
         Returns the database object.
         """
+        self.ensure_connected()
         return self._db
 
     def close_connection(self):
@@ -56,7 +76,8 @@ class Database:
         """
         if self._client:
             self._client.close()
-            logging.info("🔌 Conexión a MongoDB cerrada.")
+            self._connected = False
+            logging.info(" Conexión a MongoDB cerrada.")
 
 
 

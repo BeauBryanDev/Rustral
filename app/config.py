@@ -23,3 +23,5 @@ class Config:
     ARUCO_REAL_SIZE  =  30.00
     UPLOAD_FOLDER = os.getenv("outputs")
     MODEL_PATH  = os.getenv("MODEL_PATH")
+    CORS_ORIGINS = os.getenv("CORS_ORIGINS", "*")
+    PYTEST_CURRENT_TEST = os.getenv("PYTEST_CURRENT_TEST", None)

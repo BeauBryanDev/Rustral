@@ -3,7 +3,7 @@ import time
 import logging
 import numpy as np
 import onnxruntime as ort
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Tuple
 
 from app.config import Config
 from app.services.fractal_service import FractalService
@@ -22,9 +22,6 @@ from app.utils.geometry_utils import (
     remap_mask
 )
 from app.core.exceptions import (
-    NotFoundException,
-    InvalidObjectIdException,
-    DatabaseException,
     BadRequestException,
     ExternalServiceException,
     InternalServerException,

@@ -95,6 +95,7 @@ def get_password_hash(password):
     """
     return pwd_context.hash(password)
 
+
 def verify_jwt(token: str):
     """  
     Verifies a JWT token and returns the decoded payload if valid.
