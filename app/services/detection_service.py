@@ -46,7 +46,9 @@ class DetectionService:
         """
         try:
             object_id = ObjectId(detection_id)
+            
         except InvalidId:
+            
             logger.warning(f"Invalid ObjectId format provided: {detection_id}")
             raise InvalidObjectIdException(field="detection_id", value=detection_id)
         
@@ -83,7 +85,9 @@ class DetectionService:
         """
         try:
             object_id = ObjectId(user_id)
+            
         except InvalidId:
+            
             logger.warning(f"Invalid User ObjectId format provided: {user_id}")
             raise InvalidObjectIdException(field="user_id", value=user_id)
         
@@ -116,9 +120,12 @@ class DetectionService:
         try:
             user_obj_id = ObjectId(user_id)
             location_obj_id = ObjectId(location_id)
+            
         except InvalidId as e:
+            
             invalid_id = user_id if "user_id" in str(e) else location_id
             field = "user_id" if invalid_id == user_id else "location_id"
+            
             logger.warning(f"Invalid ObjectId format provided for {field}: {invalid_id}")
             raise InvalidObjectIdException(field=field, value=invalid_id)
         
@@ -129,8 +136,10 @@ class DetectionService:
             return detections
         
         except Exception as e:
+            
             logger.error(f"Error fetching detections by user {user_id} and location {location_id}: {e}")
             raise DatabaseException(operation="get_detections_by_location")
+
 
     def get_all_detection_by_severity(self, severity_level: str) -> List[Dict[str, Any]]:
         """
@@ -148,17 +157,19 @@ class DetectionService:
             DatabaseException: If a database error occurs.
         """
         if not severity_level:
+            
             raise ValidationException(field="severity_level", reason="Severity level is required")
         
         try:
-            # This query looks for documents where any element in the 'detections' array
-            # has a 'severity_level' field matching the provided value.
+            # This query looks for documents where any element in the 'detections' array has a severity level of 'severity_level'
             query = {"detections.severity_level": severity_level}
             cursor = self.collection.find(query)
             detections = [DetectionDocument.from_dict(document).to_dict() for document in cursor]
+            
             return detections
         
         except Exception as e:
+            
             logger.error(f"Error fetching detections by severity level {severity_level}: {e}")
             raise DatabaseException(operation="get_all_detection_by_severity")
 
@@ -179,8 +190,10 @@ class DetectionService:
         """
         try:
             object_id = ObjectId(image_id)
+            
         except InvalidId:
             logger.warning(f"Invalid Image ObjectId format provided: {image_id}")
+            
             raise InvalidObjectIdException(field="image_id", value=image_id)
         
         try:
@@ -208,8 +221,10 @@ class DetectionService:
         """
         try:
             object_id = ObjectId(detection_id)
+            
         except InvalidId:
             logger.warning(f"Invalid ObjectId format provided for deletion: {detection_id}")
+            
             raise InvalidObjectIdException(field="detection_id", value=detection_id)
         
         try:

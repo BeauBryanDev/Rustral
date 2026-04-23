@@ -4,12 +4,6 @@ from bson.objectid import ObjectId
 from bson.errors import InvalidId
 
 from app.core.database import db_instance
-from app.core.exceptions import (
-    NotFoundException,
-    InvalidObjectIdException,
-    DatabaseException,
-    InternalServerException,
-)
 from app.models.images import ImageDocument # Assuming ImageDocument exists in app/models/images
 from app.core.exceptions import (
     NotFoundException,
@@ -48,7 +42,9 @@ class ImageService:
         """
         try:
             object_id = ObjectId(user_id)
+            
         except InvalidId:
+            
             logger.warning(f"Invalid User ObjectId format provided: {user_id}")
             raise InvalidObjectIdException(field="user_id", value=user_id)
         

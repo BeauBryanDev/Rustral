@@ -174,6 +174,7 @@ class UserCRUDService:
         """
         try:
             object_id = ObjectId(user_id)
+            
         except InvalidId:
             logger.warning(f"Invalid ObjectId format provided for PUT update: {user_id}")
             raise InvalidObjectIdException(field="user_id", value=user_id)
@@ -181,6 +182,7 @@ class UserCRUDService:
         try:
             # Protect the primary identity field
             if "email" in update_data:
+                
                 update_data.pop("email")
                 logger.debug(f"Stripped immutable 'email' field from PUT payload for ID: {user_id}")
 
