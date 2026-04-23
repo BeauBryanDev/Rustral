@@ -60,7 +60,7 @@ class ImageService:
 
     def get_all_images(self) -> List[Dict[str, Any]]:
         """
-        Retrieves all image documents. This method should typically be restricted to admin users.
+        Retrieves all image documents. This method should  be restricted only to the admin user.
 
         Returns:
             List[Dict[str, Any]]: A list of all serialized image documents.
@@ -135,6 +135,7 @@ class ImageService:
         try:
             object_id = ObjectId(location_id)
         except InvalidId:
+            
             logger.warning(f"Invalid Location ObjectId format provided: {location_id}")
             raise InvalidObjectIdException(field="location_id", value=location_id)
         

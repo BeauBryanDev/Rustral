@@ -1,6 +1,6 @@
 import cv2
 import numpy as np
-from typing import Tuple, Optional, List
+from typing import Tuple, Optional, List, Dict, Any
 
 
 # Standard configuration for the physical ArUco marker
@@ -102,8 +102,11 @@ def preprocess_for_yolo(
     
     # Resize image maintaining aspect ratio
     if (original_width, original_height) != (new_unpad_width, new_unpad_height):
+        
         resized_img = cv2.resize(image, (new_unpad_width, new_unpad_height), interpolation=cv2.INTER_LINEAR)
+        
     else:
+        
         resized_img = image.copy()
         
     # Apply padding to reach target_size
@@ -144,4 +147,78 @@ def calculate_real_area(pixel_count: int, cm_per_pixel: float) -> float:
         float: The physical area in square centimeters.
     """
     return float(pixel_count * (cm_per_pixel ** 2))
+
+
+def draw_corrosion_analysis(image_np: np.ndarray, 
+                            detections: List[Dict[str, Any]]
+                            ) -> np.ndarray:
+    """
+    Draws bounding boxes, severity labels, and calculated metrics on the original image.
+    Applies a cyberpunk industrial aesthetic using semi-transparent overlays.
+
+    Args:
+        image_np (np.ndarray): The original BGR image array.
+        detections (List[Dict[str, Any]]): The list of parsed detection dictionaries.
+
+    Returns:
+        np.ndarray: A new image array with all visual overlays applied.
+    """
+    if image_np is None or not detections:
+        
+        return image_np
+
+
+    annotated_image = image_np.copy()
+    overlay = image_np.copy()
+
+    # BGR Color Palette based on the Cyberpunk Industrial FrontEnd 
+    # Rust Orange: #FF5F00 -> BGR(0, 95, 255)
+    # Neon Cyan:   #00F2FF -> BGR(255, 242, 0)
+    RUST_ORANGE = (0, 95, 255)
+    NEON_CYAN = (255, 242, 0)
+    
+    alpha = 0.35  # Transparency factor for the box fill
+
+    for det in detections:
+        
+        x1, y1, x2, y2 = det.get("box", [0, 0, 0, 0])
+        confidence = det.get("confidence", 0.0)
+        area_cm2 = det.get("area_cm2")
+        severity = det.get("severity_level", "Unknown")
+        fractal_dim = det.get("fractal_dimension")
+
+        # Draw  fill and solid border
+        cv2.rectangle(overlay, (x1, y1), (x2, y2), RUST_ORANGE, -1)
+        cv2.rectangle(annotated_image, (x1, y1), (x2, y2), RUST_ORANGE, 2)
+
+        # Prepare label text
+        label_primary = f"Severity: {severity} ({confidence:.2f})"
+        
+        label_secondary = ""
+        
+        if area_cm2 is not None:
+            
+            label_secondary += f"Area: {area_cm2} cm2 "
+            
+        if fractal_dim is not None:
+            
+            label_secondary += f"| FD: {fractal_dim}"
+
+        # Draw text background for readability
+        (text_w1, text_h1), _ = cv2.getTextSize(label_primary, cv2.FONT_HERSHEY_SIMPLEX, 0.5, 1)
+        cv2.rectangle(annotated_image, (x1, y1 - 40), (x1 + text_w1, y1 - 20), (11, 14, 20), -1) # My Dark Gray bg
+        
+        (text_w2, text_h2), _ = cv2.getTextSize(label_secondary, cv2.FONT_HERSHEY_SIMPLEX, 0.4, 1)
+        cv2.rectangle(annotated_image, (x1, y1 - 20), (x1 + text_w2, y1), (11, 14, 20), -1)
+
+        # Put text
+        cv2.putText(annotated_image, label_primary, (x1, y1 - 25), 
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.5, RUST_ORANGE, 1, cv2.LINE_AA)
+        cv2.putText(annotated_image, label_secondary, (x1, y1 - 5), 
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.4, NEON_CYAN, 1, cv2.LINE_AA)
+
+    # Blend the overlay with the annotated image for the glassmorphism effect
+    cv2.addWeighted(overlay, alpha, annotated_image, 1 - alpha, 0, annotated_image)
+
+    return annotated_image
 
