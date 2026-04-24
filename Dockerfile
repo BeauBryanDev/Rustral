@@ -23,4 +23,4 @@ RUN mkdir -p outputs logs
 
 EXPOSE 5000
 
-CMD ["gunicorn", "--factory", "--bind", "0.0.0.0:5000", "--workers", "2", "--threads", "4", "app.app:create_app"]
+CMD ["gunicorn", "--bind", "0.0.0.0:5000", "--workers", "2", "--threads", "4", "app.wsgi:app"]

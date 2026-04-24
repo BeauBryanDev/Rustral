@@ -6,7 +6,10 @@ from jose import jwt, JWTError
 from passlib.context import CryptContext
 from app.config import Config
 
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+# bcrypt has a 72-byte input limit. Use pbkdf2_sha256 
+# #for all new passwords so avoid annoying edge cases
+# "where users have long passwords that get truncated and cause login issues.
+pwd_context = CryptContext(schemes=["pbkdf2_sha256"], deprecated="auto")
 
 algorithm = Config.JWT_ALGORITHM
 access_token_expires = timedelta(seconds=Config.JWT_ACCESS_TOKEN_EXPIRES)

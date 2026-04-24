@@ -138,7 +138,7 @@ FractoRust-AI is a sophisticated AI-powered platform designed to detect, quantif
    ```bash
    python app/app.py
    # or with Gunicorn
-   gunicorn --factory --bind 0.0.0.0:5000 --workers 2 --threads 4 app.app:create_app
+   gunicorn --bind 0.0.0.0:5000 --workers 2 --threads 4 app.wsgi:app
    ```
 
 ---

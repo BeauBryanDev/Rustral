@@ -197,15 +197,7 @@ class VisionService:
         confidences   = preds[:, 4]        # (8400,)
         mask_coefs    = preds[:, 5:37]     # (8400, 32)
         
-        confidences =  1.75 * confidences 
-        
-        if confidences >= 1.0:
-            
-            confidences =  0.982
-            
-        else :
-            
-            confidences =  0.982 * confidences
+        confidences = np.clip(confidences * 1.75, a_min=None, a_max=0.982)
         
         keep_mask = confidences >= CONFIDENCE_THRESHOLD
         
@@ -236,6 +228,7 @@ class VisionService:
  
         orig_h, orig_w = original_hw
         proto_flat     = protos.reshape(32, -1)    # (32, 25600)
+                   # (32, 25600)
         # detections     = []   It is sane as parse_detections is called only once
              
         for i in range(len(nms_indices)):
@@ -246,7 +239,7 @@ class VisionService:
  
             #  Linear combination of prototypes -> raw mask (160x160)
             #     coefs: (32,)   protos: (32, 160*160)
-            proto_flat  = protos.reshape(32, -1)                        # (32, 25600)
+            
             raw_mask    = (coefs @ proto_flat).reshape(160, 160)        # (160, 160)
             raw_mask    = sigmoid(raw_mask)
             

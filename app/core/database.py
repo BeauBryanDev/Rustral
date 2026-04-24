@@ -1,6 +1,7 @@
 import os
 from pymongo import MongoClient
 from pymongo.errors import ConnectionFailure
+from pymongo.uri_parser import parse_uri
 from app.config import Config
 import logging
 
@@ -43,8 +44,10 @@ class Database:
             # Force a connection to check if MongoDB is reachable
             self._client.admin.command('ping')
             
-            # Extract the database name from the URI and connect to it
-            db_name = Config.MONGODB_URI.split('/')[-1].split('?')[0] or "fractorust_db"
+            # Prefer the explicit database name from config; fall back to URI parsing
+            # and then a safe default if the URI does not include a path segment.
+            uri_db_name = parse_uri(Config.MONGODB_URI).get("database")
+            db_name = Config.MONGODB_DB or uri_db_name or "fractorust_db"
             self._db = self._client[db_name]
             self._connected = True
             
@@ -83,4 +86,3 @@ class Database:
 
 # Create a single instance of the Database class
 db_instance = Database()
-

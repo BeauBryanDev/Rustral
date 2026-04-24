@@ -1,7 +1,8 @@
 
-import time 
+import os
+import time
 import logging
-from flask import Blueprint, request, jsonify, g 
+from flask import Blueprint, request, jsonify, g
 
 from app.core.error_handlers import handle_api_exceptions, success_response
 from app.core.exceptions import ValidationException, ForbiddenException
@@ -82,31 +83,46 @@ def analyze_image_endpoint():
         #  Draw corrosion bounding box on annotated_img 
         detections_list = analysis_results.get("detections", [])
         annotated_image = draw_corrosion_analysis(image_np, detections_list)
-        #  Save the processed image (assuming vision_service drew the masks on image_np)
+        #  Save the processed image to ./outputs via storage_service
         saved_path = storage_service.save_masked_image(annotated_image, location_id)
 
-        #  Build and save the Detection Document to MongoDB
+        #  Build and persist an ImageDocument in the images collection
         user_id = g.user_id  # Extracted from JWT token
-        
+        height_px, width_px = image_np.shape[:2]
+
+        image_id = image_service.create_image(
+            user_id=user_id,
+            location_id=location_id,
+            stored_filename=os.path.basename(saved_path),
+            stored_path=saved_path,
+            mime_type=file.content_type or "image/jpeg",
+            size_bytes=len(image_bytes),
+            width_px=width_px,
+            height_px=height_px,
+            total_detections=len(detections_list),
+        )
+
+        #  Build and save the Detection Document to MongoDB
         detection_doc = DetectionDocument(
             user_id=user_id,
             location_id=location_id,
-            image_id=None, # Update this if an ImageDocument is created prior to this step
+            image_id=image_id,
             detections=analysis_results.get("detections", []),
             aruco_metadata=analysis_results.get("aruco_metadata", {}),
             inference_time_ms=analysis_results.get("inference_time_ms", 0.0)
         )
-        
+
         insert_result = db_instance.db.detections.insert_one(detection_doc.to_dict())
         document_id = str(insert_result.inserted_id)
-        
+
         total_request_time = (time.perf_counter() - request_start_time) * 1000.0
         logger.info(f"Full inference cycle completed for location {location_id} in {total_request_time:.2f}ms")
 
-        # 6. Return structured response
+        # Return structured response
         return jsonify({
             "message": "Analysis successful",
             "detection_id": document_id,
+            "image_id": image_id,
             "saved_image_path": saved_path,
             "metrics": analysis_results
         }), 201

@@ -150,6 +150,51 @@ class ImageService:
             raise DatabaseException(operation="get_image_by_location")
 
 
+    def create_image(
+        self,
+        user_id: str,
+        location_id: str,
+        stored_filename: str,
+        stored_path: str,
+        mime_type: str,
+        size_bytes: int,
+        width_px: int,
+        height_px: int,
+        total_detections: int = 0,
+    ) -> str:
+        """
+        Creates and persists a new ImageDocument in the images collection.
+
+        Returns:
+            str: The string representation of the inserted document's ObjectId.
+
+        Raises:
+            InvalidObjectIdException: If user_id or location_id is not a valid ObjectId.
+            DatabaseException: If the insert operation fails.
+        """
+        try:
+            image_doc = ImageDocument(
+                user_id=ObjectId(user_id),
+                location_id=ObjectId(location_id),
+                stored_filename=stored_filename,
+                stored_path=stored_path,
+                mime_type=mime_type,
+                size_bytes=size_bytes,
+                width_px=width_px,
+                height_px=height_px,
+                total_detections=total_detections,
+            )
+            result = self.collection.insert_one(image_doc.to_dict())
+            logger.info(f"Image document created with ID: {result.inserted_id}")
+            return str(result.inserted_id)
+
+        except InvalidId:
+            raise InvalidObjectIdException(field="user_id or location_id", value=f"{user_id}, {location_id}")
+
+        except Exception as e:
+            logger.error(f"Error creating image document: {e}")
+            raise DatabaseException(operation="create_image")
+
     def delete_image(self, image_id: str) -> None:
         """
         Permanently removes an image document from the database.

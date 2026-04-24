@@ -4,9 +4,14 @@ from typing import Tuple, Optional, List, Dict, Any
 
 
 # Standard configuration for the physical ArUco marker
-ARUCO_DICT = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_4X4_50)
-ARUCO_PARAMS = cv2.aruco.DetectorParameters()
-DEFAULT_REFERENCE_CM = 30.0
+_ARUCO_AVAILABLE = hasattr(cv2, "aruco")
+if _ARUCO_AVAILABLE:
+    ARUCO_DICT = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_4X4_50)
+    ARUCO_PARAMS = cv2.aruco.DetectorParameters()
+else:
+    ARUCO_DICT = None
+    ARUCO_PARAMS = None
+DEFAULT_REFERENCE_CM = 5.0  # The known width of the ArUco marker in centimeters
 
 
 def decode_image_bytes(image_bytes: bytes) -> np.ndarray:
@@ -43,6 +48,9 @@ def detect_aruco_scale(image: np.ndarray, reference_cm: float = DEFAULT_REFERENC
     Returns:
         Optional[float]: The scale ratio (cm per pixel) if a marker is found, None otherwise.
     """
+    if not _ARUCO_AVAILABLE:
+        return None
+
     detector = cv2.aruco.ArucoDetector(ARUCO_DICT, ARUCO_PARAMS)
     corners, ids, _ = detector.detectMarkers(image)
     
@@ -221,4 +229,3 @@ def draw_corrosion_analysis(image_np: np.ndarray,
     cv2.addWeighted(overlay, alpha, annotated_image, 1 - alpha, 0, annotated_image)
 
     return annotated_image
-
