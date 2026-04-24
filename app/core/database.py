@@ -48,11 +48,11 @@ class Database:
             self._db = self._client[db_name]
             self._connected = True
             
-            logging.info(f"🔌 Conexión a MongoDB establecida: {Config.MONGODB_URI}")
+            logging.info(f"Connectiong to MongoDB: {Config.MONGODB_URI}")
             
         except ConnectionFailure as e:
             
-            logging.error(f"Error crítico: No se pudo conectar a MongoDB. {e}")
+            logging.error(f"Error, Unable to connect to MongoDB: {e}")
             raise e
 
     def ensure_connected(self):

@@ -1,4 +1,4 @@
-name: Rustral Backend CI/CD Pipeline
+name: Rustral Backend CI Pipeline
 
 on:
   push:
@@ -18,7 +18,7 @@ jobs:
 
   
   code-quality:
-    name: 🔍 Code Quality & Linting
+    name:  Code Quality & Linting
     runs-on: ubuntu-latest
     
     steps:
@@ -99,9 +99,9 @@ jobs:
 
       - name:  Wait for MongoDB to be ready
         run: |
-          timeout 60 bash -c 'until mongosh --quiet --eval "db.adminCommand({ ping: 1 })" mongodb://localhost:27018 > /dev/null 2>&1; do sleep 1; done'
+          timeout 60 bash -c 'until python -c "import socket; s=socket.socket(); s.settimeout(1); s.connect((\"127.0.0.1\", 27018)); s.close()" >/dev/null 2>&1; do sleep 1; done'
 
-      - name: 🧪 Run unit tests with pytest
+      - name: Run unit tests with pytest
         run: |
           pytest tests/ \
             -v \
@@ -176,7 +176,7 @@ jobs:
 
       - name: Wait for MongoDB to be ready
         run: |
-          timeout 60 bash -c 'until mongosh --quiet --eval "db.adminCommand({ ping: 1 })" mongodb://localhost:27018 > /dev/null 2>&1; do sleep 1; done'
+          timeout 60 bash -c 'until python -c "import socket; s=socket.socket(); s.settimeout(1); s.connect((\"127.0.0.1\", 27018)); s.close()" >/dev/null 2>&1; do sleep 1; done'
 
       - name: Run integration tests
         run: |
@@ -263,7 +263,7 @@ jobs:
     steps:
       - name:  Check job statuses
         run: |
-          echo "## CI/CD Pipeline Status Report" >> $GITHUB_STEP_SUMMARY
+          echo "## CI Pipeline Status Report" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "| Job | Status |" >> $GITHUB_STEP_SUMMARY
           echo "|-----|--------|" >> $GITHUB_STEP_SUMMARY
