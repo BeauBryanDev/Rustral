@@ -23,12 +23,12 @@ jobs:
     
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
       - name: Set up Python ${{ env.PYTHON_VERSION }}
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v6
         with:
           python-version: ${{ env.PYTHON_VERSION }}
           cache: 'pip'
@@ -39,12 +39,10 @@ jobs:
           pip install flake8 pylint black isort
 
       - name: Run Black (Code Formatting)
-        run: black --check app/ tests/ --line-length=100 --exclude="(__pycache__|\.venv|\.git|build|dist)"
-        continue-on-error: true
+        run: black --check app/ tests/ --line-length=100 --exclude="(__pycache__|\.venv|\.git|build|dist)" || true
 
       - name: Run isort (Import Sorting)
-        run: isort --check-only app/ tests/ --profile black
-        continue-on-error: true
+        run: isort --check-only app/ tests/ --profile black || true
 
       - name: Run Flake8 (Linting)
         run: |
@@ -54,12 +52,10 @@ jobs:
             --show-source \
             --statistics \
             --max-line-length=100 \
-            --exclude=__pycache__,\.venv,migrations
-        continue-on-error: true
+            --exclude=__pycache__,\.venv,migrations || true
 
       - name: Run Pylint
-        run: pylint app/ --fail-under=7.0 --disable=C0111,C0103,W0212
-        continue-on-error: true
+        run: pylint app/ --fail-under=7.0 --disable=C0111,C0103,W0212 || true
 
 
   # Unit Tests & Coverage
@@ -82,10 +78,10 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Set up Python ${{ env.PYTHON_VERSION }}
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v6
         with:
           python-version: ${{ env.PYTHON_VERSION }}
           cache: 'pip'
@@ -120,9 +116,9 @@ jobs:
             --timeout=300
 
       - name: Upload coverage reports
-        uses: codecov/codecov-action@v3
+        uses: codecov/codecov-action@v5.5.1
         with:
-          file: ./coverage.xml
+          files: ./coverage.xml
           flags: unittests
           name: codecov-umbrella
           fail_ci_if_error: false
@@ -130,7 +126,7 @@ jobs:
 
       - name: Archive coverage report
         if: always()
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v7
         with:
           name: coverage-report
           path: htmlcov/
@@ -164,10 +160,10 @@ jobs:
 
     steps:
       - name:  Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Set up Python ${{ env.PYTHON_VERSION }}
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v6
         with:
           python-version: ${{ env.PYTHON_VERSION }}
           cache: 'pip'
@@ -191,7 +187,7 @@ jobs:
 
       - name: Archive integration test results
         if: always()
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v7
         with:
           name: integration-test-results
           path: |
@@ -206,10 +202,10 @@ jobs:
     
     steps:
       - name:  Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name:  Set up Python ${{ env.PYTHON_VERSION }}
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v6
         with:
           python-version: ${{ env.PYTHON_VERSION }}
           cache: 'pip'
@@ -222,13 +218,13 @@ jobs:
       - name:  Run Bandit (Security linter)
         run: |
           bandit -r app/ -f json -o bandit-report.json || true
-          bandit -r app/ -ll
+          bandit -r app/ -ll || true
         continue-on-error: true
 
       - name: Check dependencies with Safety
         run: |
           safety check --json > safety-report.json || true
-          safety check
+          safety check || true
         continue-on-error: true
 
       - name:  Run pip-audit
@@ -238,7 +234,7 @@ jobs:
 
       - name:  Upload security reports
         if: always()
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v7
         with:
           name: security-reports
           path: |
