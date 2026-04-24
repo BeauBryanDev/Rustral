@@ -42,28 +42,6 @@ def create_user():
             "role": "user"  # optional, defaults to "user"
         }
     
-    Returns:
-        201 Created:
-            {
-                "status": "success",
-                "status_code": 201,
-                "message": "User created successfully",
-                "data": {
-                    "_id": "507f1f77bcf86cd799439011",
-                    "full_name": "John Doe",
-                    "email": "user@example.com",
-                    "hash_password": "...",
-                    "gender": null,
-                    "phone_number": null,
-                    "country": null,
-                    "city": null,
-                    "is_active": true,
-                    "is_admin": false,
-                    "created_at": "2026-04-23T10:30:00",
-                    "updated_at": "2026-04-23T10:30:00"
-                }
-            }
-    
     Raises:
         400 Bad Request: If email or password is missing
         409 Conflict: If email already exists
@@ -104,14 +82,7 @@ def get_user(user_id):
                 "status": "success",
                 "status_code": 200,
                 "message": "User retrieved successfully",
-                "data": {
-                    "_id": "507f1f77bcf86cd799439011",
-                    "email": "user@example.com",
-                    "full_name": "John Doe",
-                    "role": "user",
-                    "created_at": "2026-04-23T10:30:00",
-                    "updated_at": "2026-04-23T10:30:00"
-                }
+                "data": user 
             }
     
     Raises:
@@ -143,15 +114,7 @@ def get_user_by_email(email):
                 "status": "success",
                 "status_code": 200,
                 "message": "User retrieved successfully",
-                "data": {
-                    "_id": "507f1f77bcf86cd799439011",
-                    "email": "user@example.com",
-                    "full_name": "John Doe",
-                    "role": "user",
-                    "created_at": "2026-04-23T10:30:00",
-                    "updated_at": "2026-04-23T10:30:00"
-                }
-            }
+                "data": user 
     
     Raises:
         400 Bad Request: If email is not provided
@@ -190,21 +153,7 @@ def update_user_put(user_id):
                 "status": "success",
                 "status_code": 200,
                 "message": "User updated successfully",
-                "data": {
-                    "_id": "507f1f77bcf86cd799439011",
-                    "full_name": "Jane Doe",
-                    "email": "user@example.com",
-                    "hash_password": "...",
-                    "gender": null,
-                    "phone_number": null,
-                    "country": null,
-                    "city": null,
-                    "is_active": true,
-                    "is_admin": false,
-                    "created_at": "2026-04-23T10:30:00",
-                    "updated_at": "2026-04-23T10:30:00"
-                }
-            }
+                "data":  user 
     
     Raises:
         400 Bad Request: If user_id is invalid or no valid fields provided
@@ -252,22 +201,7 @@ def update_user_patch(user_id):
                 "status": "success",
                 "status_code": 200,
                 "message": "User updated successfully",
-                "data": {
-                    "_id": "507f1f77bcf86cd799439011",
-                    "full_name": "Jane Doe",
-                    "email": "user@example.com",
-                    "hash_password": "...",
-                    "gender": null,
-                    "phone_number": null,
-                    "country": null,
-                    "city": null,
-                    "is_active": true,
-                    "is_admin": false,
-                    "created_at": "2026-04-23T10:30:00",
-                    "updated_at": "2026-04-23T10:30:00"
-                }
-            }
-    
+                "data":  user 
     Raises:
         400 Bad Request: If user_id is invalid or no valid fields provided
         404 Not Found: If user does not exist
@@ -308,21 +242,7 @@ def delete_user(user_id):
                 "status": "success",
                 "status_code": 200,
                 "message": "User deleted successfully",
-                "data": {
-                    "_id": "507f1f77bcf86cd799439011",
-                    "full_name": "John Doe",
-                    "email": "user@example.com",
-                    "hash_password": "...",
-                    "gender": null,
-                    "phone_number": null,
-                    "country": null,
-                    "city": null,
-                    "is_active": true,
-                    "is_admin": false,
-                    "created_at": "2026-04-23T10:30:00",
-                    "updated_at": "2026-04-23T10:30:00"
-                }
-            }
+                "data": user 
     
     Raises:
         400 Bad Request: If user_id is not a valid ObjectId

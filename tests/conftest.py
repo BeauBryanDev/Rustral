@@ -4,8 +4,27 @@ import types
 import cv2
 import pytest
 import numpy as np
-import mongomock
 from unittest.mock import patch, MagicMock
+
+
+try:
+    import pkg_resources  # type: ignore
+except ModuleNotFoundError:
+    # mongomock 4.1.2 imports pkg_resources from setuptools at import time.
+    # Some CI images do not expose that module early enough, so provide a tiny
+    # compatibility shim before importing mongomock.
+    pkg_resources = types.ModuleType("pkg_resources")
+
+    class _Distribution:
+        version = "4.1.2"
+
+    def _get_distribution(name):
+        return _Distribution()
+
+    pkg_resources.get_distribution = _get_distribution
+    sys.modules["pkg_resources"] = pkg_resources
+
+import mongomock
 
 
 os.environ["SECRET_KEY"] = "test_super_secret_key"
