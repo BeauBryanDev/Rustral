@@ -15,7 +15,7 @@ from app.services.user_CRUD_service import user_service
 """
 Flask Blueprint for Analytics Endpoints
 
-Provides authenticated dashboard data derived from the detections collection:
+Provides authenticated dashboard data from the detections collection:
 - GET /api/v1/analytics/summary - Admin dashboard summary
 - GET /api/v1/analytics/user/me - Current user analytics
 - GET /api/v1/analytics/location/<location_id> - Location analytics
@@ -36,8 +36,11 @@ analytics_bp = Blueprint(
 
 def _user_object_id() -> ObjectId:
     try:
+        
         return ObjectId(str(g.user_id))
+    
     except InvalidId:
+        
         raise BadRequestException(
             message="Invalid authenticated user identity",
             error_code="INVALID_USER_ID",
@@ -45,22 +48,31 @@ def _user_object_id() -> ObjectId:
 
 
 def _is_admin_user() -> bool:
+    
     current_user = user_service.get_user_by_id(str(g.user_id))
+    
     return bool(current_user.get("is_admin", False))
 
 
 def _require_admin_user() -> None:
+    
     if not _is_admin_user():
+        
         raise ForbiddenException(
+            
             message="Admin access required",
             error_code="ADMIN_REQUIRED",
         )
 
 
 def _location_object_id(location_id: str) -> ObjectId:
+    
     try:
+        
         return ObjectId(location_id)
+    
     except InvalidId:
+        
         raise BadRequestException(
             message="Invalid location_id ObjectId format",
             error_code="INVALID_LOCATION_ID",
@@ -68,9 +80,11 @@ def _location_object_id(location_id: str) -> ObjectId:
 
 
 def _ensure_location_ownership(location_id: str) -> ObjectId:
+    
     location = location_service.get_location_by_id(location_id)
 
     if str(location.get("user_id")) != str(g.user_id):
+        
         raise ForbiddenException(
             message="You do not have permission to access analytics for this location",
             error_code="LOCATION_ANALYTICS_ACCESS_DENIED",
@@ -81,18 +95,24 @@ def _ensure_location_ownership(location_id: str) -> ObjectId:
 
 
 def _get_collections():
+    
     db = db_instance.db
     return db.users, db.locations, db.images, db.detections
 
 
 def _base_match(user_id: ObjectId, location_id: Optional[ObjectId] = None) -> Dict[str, Any]:
+    
     query: Dict[str, Any] = {"user_id": user_id}
+    
     if location_id is not None:
+        
         query["location_id"] = location_id
+        
     return query
 
 
 def _severity_distribution(match: Dict[str, Any]) -> Dict[str, int]:
+
     _, _, _, detections_collection = _get_collections()
 
     pipeline = [
@@ -174,12 +194,17 @@ def _flatten_fractal_detections(
     ]
 
     fractal_filter: Dict[str, Any] = {}
+    
     if min_fractal is not None:
+        
         fractal_filter["$gte"] = min_fractal
+        
     if max_fractal is not None:
+        
         fractal_filter["$lte"] = max_fractal
 
     if fractal_filter:
+        
         pipeline.append({"$match": {"detections.fractal_dimension": fractal_filter}})
 
     pipeline.extend(
@@ -220,6 +245,7 @@ def _flatten_fractal_detections(
 
 
 def _recent_detections(match: Dict[str, Any], limit: int) -> List[Dict[str, Any]]:
+    
     _, _, _, detections_collection = _get_collections()
 
     pipeline = [
@@ -421,13 +447,16 @@ def get_last_detections():
 
     try:
         limit = int(limit_raw)
+        
     except ValueError:
+        
         raise BadRequestException(
             message="Query parameter 'limit' must be an integer",
             error_code="INVALID_LIMIT",
         )
 
     if limit < 1:
+        
         raise BadRequestException(
             message="Query parameter 'limit' must be greater than zero",
             error_code="INVALID_LIMIT",
@@ -468,18 +497,25 @@ def get_detections_by_fractal_dimension():
     location_id = request.args.get("location_id")
 
     try:
+        
         min_fractal = float(min_raw)
+        
     except ValueError:
+        
         raise BadRequestException(
             message="Query parameter 'min' must be a number",
             error_code="INVALID_MIN_FRACTAL",
         )
 
     max_fractal: Optional[float] = None
+    
     if max_raw not in (None, ""):
+        
         try:
             max_fractal = float(max_raw)
+            
         except ValueError:
+            
             raise BadRequestException(
                 message="Query parameter 'max' must be a number",
                 error_code="INVALID_MAX_FRACTAL",

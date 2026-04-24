@@ -9,7 +9,7 @@ logger = logging.getLogger(__name__)
 
 def jwt_required(func):
     """
-    Decorator to protect Flask endpoints with JWT authentication.
+    @Decorator to protect Flask endpoints with JWT authentication.
     Validates the 'Authorization: Bearer <token>' header.
     If valid, injects the user ID into Flask's 'g' context object.
     

@@ -21,10 +21,7 @@ from app.utils.image_utils import (
     draw_corrosion_analysis,
 )
 
-
-# ============================================================================
 # FIXTURES
-# ============================================================================
 
 @pytest.fixture
 def valid_jpeg_bytes():
@@ -119,9 +116,7 @@ def multiple_detections():
     ]
 
 
-# ============================================================================
 # TEST: decode_image_bytes - VALID JPEG
-# ============================================================================
 
 def test_decode_image_bytes_valid_jpeg(valid_jpeg_bytes):
     """
@@ -150,9 +145,7 @@ def test_decode_image_bytes_valid_jpeg(valid_jpeg_bytes):
     assert result.min() >= 0 and result.max() <= 255, "Pixel values should be in range [0, 255]"
 
 
-# ============================================================================
 # TEST: decode_image_bytes - CORRUPTED DATA
-# ============================================================================
 
 def test_decode_image_bytes_corrupted_data(corrupted_bytes):
     """
@@ -168,9 +161,7 @@ def test_decode_image_bytes_corrupted_data(corrupted_bytes):
     assert "Failed to decode" in str(exc_info.value), "Error message should indicate decoding failure"
 
 
-# ============================================================================
 # TEST: detect_aruco_scale - SUCCESSFUL DETECTION
-# ============================================================================
 
 def test_detect_aruco_scale_success(image_with_aruco_marker):
     """
@@ -193,9 +184,7 @@ def test_detect_aruco_scale_success(image_with_aruco_marker):
     assert 0.01 <= result <= 10.0, "Scale should be in reasonable range (0.01 to 10.0 cm/pixel)"
 
 
-# ============================================================================
 # TEST: detect_aruco_scale - NO MARKER FOUND
-# ============================================================================
 
 def test_detect_aruco_scale_no_marker(blank_image):
     """
@@ -210,10 +199,7 @@ def test_detect_aruco_scale_no_marker(blank_image):
     # Should return None, not raise an exception
     assert result is None, "Should return None when no marker is detected"
 
-
-# ============================================================================
 # TEST: preprocess_for_yolo - OUTPUT DIMENSIONS
-# ============================================================================
 
 def test_preprocess_for_yolo_dimensions(valid_jpeg_bytes):
     """
@@ -241,9 +227,7 @@ def test_preprocess_for_yolo_dimensions(valid_jpeg_bytes):
     assert ratio > 0, "Ratio should be positive"
 
 
-# ============================================================================
 # TEST: preprocess_for_yolo - NORMALIZATION
-# ============================================================================
 
 def test_preprocess_for_yolo_normalization(valid_jpeg_bytes):
     """
@@ -267,9 +251,7 @@ def test_preprocess_for_yolo_normalization(valid_jpeg_bytes):
     assert tensor.min() >= 0.0, f"Min value should be >= 0.0, got {tensor.min()}"
 
 
-# ============================================================================
 # TEST: calculate_real_area - LOGIC AND MATH
-# ============================================================================
 
 def test_calculate_real_area_logic():
     """
@@ -294,10 +276,7 @@ def test_calculate_real_area_logic():
     expected = 25.0
     assert result == expected, f"Expected {expected}, got {result}"
 
-
-# ============================================================================
 # TEST: calculate_real_area - VARIOUS SCALES
-# ============================================================================
 
 @pytest.mark.parametrize("pixel_count,cm_per_pixel,expected", [
     (0, 0.5, 0.0),                    # Zero pixels
@@ -317,9 +296,7 @@ def test_calculate_real_area_parametrized(pixel_count, cm_per_pixel, expected):
     assert abs(result - expected) < 1e-6, f"Expected {expected}, got {result}"
 
 
-# ============================================================================
 # TEST: draw_corrosion_analysis - EMPTY DETECTIONS
-# ============================================================================
 
 def test_draw_corrosion_analysis_empty_detections():
     """
@@ -344,9 +321,8 @@ def test_draw_corrosion_analysis_empty_detections():
     assert isinstance(result, np.ndarray), "Result should be a numpy array"
 
 
-# ============================================================================
+
 # TEST: draw_corrosion_analysis - SINGLE DETECTION
-# ============================================================================
 
 def test_draw_corrosion_analysis_single_detection(sample_detection):
     """
@@ -373,9 +349,7 @@ def test_draw_corrosion_analysis_single_detection(sample_detection):
     assert not np.array_equal(result, test_image), "Output should differ from input (annotations added)"
 
 
-# ============================================================================
 # TEST: draw_corrosion_analysis - MULTIPLE DETECTIONS
-# ============================================================================
 
 def test_draw_corrosion_analysis_multiple_detections(multiple_detections):
     """
@@ -398,9 +372,7 @@ def test_draw_corrosion_analysis_multiple_detections(multiple_detections):
     assert result.shape == test_image.shape, "Output shape should match input"
 
 
-# ============================================================================
 # TEST: draw_corrosion_analysis - NONE IMAGE INPUT
-# ============================================================================
 
 def test_draw_corrosion_analysis_none_image():
     """
@@ -415,9 +387,8 @@ def test_draw_corrosion_analysis_none_image():
     assert result is None, "Should return None when input image is None"
 
 
-# ============================================================================
+
 # TEST: draw_corrosion_analysis - PARTIAL DETECTION INFO
-# ============================================================================
 
 def test_draw_corrosion_analysis_partial_detection_info():
     """
@@ -445,10 +416,7 @@ def test_draw_corrosion_analysis_partial_detection_info():
     assert isinstance(result, np.ndarray), "Should handle partial detection info gracefully"
     assert result.shape == test_image.shape, "Shape should be preserved"
 
-
-# ============================================================================
 # TEST: preprocess_for_yolo - DIFFERENT IMAGE SIZES
-# ============================================================================
 
 @pytest.mark.parametrize("img_height,img_width", [
     (480, 640),   # Standard 4:3
@@ -475,9 +443,8 @@ def test_preprocess_for_yolo_various_sizes(img_height, img_width):
         f"Input {img_height}x{img_width}: Expected (1,3,640,640), got {tensor.shape}"
 
 
-# ============================================================================
+
 # TEST: detect_aruco_scale - WITH DIFFERENT REFERENCE SIZES
-# ============================================================================
 
 def test_detect_aruco_scale_different_reference_sizes(image_with_aruco_marker):
     """
@@ -500,9 +467,7 @@ def test_detect_aruco_scale_different_reference_sizes(image_with_aruco_marker):
     assert 1.9 <= ratio <= 2.1, f"Expected ~2x difference, got {ratio}x"
 
 
-# ============================================================================
 # EDGE CASE TESTS
-# ============================================================================
 
 def test_calculate_real_area_very_small_scale():
     """

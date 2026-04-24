@@ -343,11 +343,14 @@ def test_users_create_user_success(app_client, seeded_dataset):
 
     assert response.status_code == 201
     body = response.get_json()
-    assert ObjectId(body["data"]["user_id"])
-    stored = db_instance.db.users.find_one({"email": payload["email"]})
-    assert stored is not None
-    assert stored["full_name"] == payload["full_name"]
-    assert stored["hash_password"] != payload["hash_password"]
+    created = body["data"]
+
+    assert ObjectId(created["_id"])
+    assert created["email"] == payload["email"]
+    assert created["full_name"] == payload["full_name"]
+    assert created["hash_password"] == "hashed-password"
+    assert created["is_active"] is True
+    assert created["is_admin"] is False
 
 
 def test_users_create_user_duplicate_email_conflict(app_client, seeded_dataset):
@@ -384,8 +387,22 @@ def test_users_patch_updates_full_name(app_client, seeded_dataset):
     )
 
     assert response.status_code == 200
-    updated = db_instance.db.users.find_one({"_id": seeded_dataset["user_id"]})
+    updated = response.get_json()["data"]
+
+    assert updated["_id"] == str(seeded_dataset["user_id"])
     assert updated["full_name"] == "Primary User Updated"
+    assert updated["email"] == "user@example.com"
+
+
+def test_users_delete_returns_deleted_document(app_client, seeded_dataset):
+    response = app_client.delete(f"/api/v1/users/{seeded_dataset['other_user_id']}")
+
+    assert response.status_code == 200
+    deleted = response.get_json()["data"]
+
+    assert deleted["_id"] == str(seeded_dataset["other_user_id"])
+    assert deleted["email"] == "other@example.com"
+    assert db_instance.db.users.find_one({"_id": seeded_dataset["other_user_id"]}) is None
 
 
 def test_locations_create_ignores_body_user_id(app_client, auth_headers, seeded_dataset):

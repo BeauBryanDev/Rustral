@@ -1,3 +1,10 @@
+import logging
+from flask import Blueprint, request, g
+
+from app.core.error_handlers import handle_api_exceptions, success_response
+from app.core.exceptions import BadRequestException, ForbiddenException
+from app.services.location_CRUD_service import location_service
+from app.routes.dependencies import jwt_required
 """
 Flask Blueprint for Location Management Routes
 
@@ -9,15 +16,6 @@ Provides RESTful endpoints for all location CRUD operations:
 - PATCH /api/v1/locations/<location_id> - Partial update
 - DELETE /api/v1/locations/<location_id> - Delete a location
 """
-
-import logging
-from flask import Blueprint, request, g
-
-from app.core.error_handlers import handle_api_exceptions, success_response
-from app.core.exceptions import BadRequestException, ForbiddenException
-from app.services.location_CRUD_service import location_service
-from app.routes.dependencies import jwt_required
-
 
 logger = logging.getLogger(__name__)
 
@@ -61,6 +59,7 @@ def create_location():
     data = request.get_json()
     
     if not data:
+        
         raise BadRequestException(
             message="Request body cannot be empty",
             error_code="EMPTY_BODY"
@@ -114,6 +113,7 @@ def get_location(location_id):
     location = location_service.get_location_by_id(location_id)
 
     if str(location.get("user_id")) != str(g.user_id):
+        
         raise ForbiddenException(
             message="You do not have permission to access this location",
             error_code="LOCATION_ACCESS_DENIED",

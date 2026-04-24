@@ -90,6 +90,7 @@ jobs:
         run: |
           python -m pip install --upgrade pip setuptools wheel
           pip install -r requirements.txt
+          python -m pip install --upgrade setuptools
           pip install pytest pytest-cov pytest-xdist pytest-timeout coverage
 
       - name: Set up test environment
@@ -172,6 +173,7 @@ jobs:
         run: |
           python -m pip install --upgrade pip setuptools wheel
           pip install -r requirements.txt
+          python -m pip install --upgrade setuptools
           pip install pytest pytest-timeout
 
       - name: Wait for MongoDB to be ready

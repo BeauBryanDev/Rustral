@@ -1,3 +1,12 @@
+import logging
+from flask import Blueprint, request, g
+
+from app.core.error_handlers import handle_api_exceptions, success_response
+from app.core.exceptions import ForbiddenException
+from app.routes.dependencies import jwt_required
+from app.services.image_service import image_service
+from app.services.location_CRUD_service import location_service
+from app.services.user_CRUD_service import user_service
 """
 Flask Blueprint for Image Management Routes
 
@@ -9,17 +18,6 @@ Provides RESTful endpoints for image access with JWT-based ownership checks:
 - DELETE /api/v1/images/<image_id> - Delete an image
 """
 
-import logging
-from flask import Blueprint, request, g
-
-from app.core.error_handlers import handle_api_exceptions, success_response
-from app.core.exceptions import ForbiddenException
-from app.routes.dependencies import jwt_required
-from app.services.image_service import image_service
-from app.services.location_CRUD_service import location_service
-from app.services.user_CRUD_service import user_service
-
-
 logger = logging.getLogger(__name__)
 
 images_bp = Blueprint(
@@ -30,8 +28,11 @@ images_bp = Blueprint(
 
 
 def _require_admin_user() -> None:
+    
     current_user = user_service.get_user_by_id(str(g.user_id))
+    
     if not current_user.get("is_admin", False):
+        
         raise ForbiddenException(
             message="Admin access required",
             error_code="ADMIN_REQUIRED",
@@ -39,8 +40,11 @@ def _require_admin_user() -> None:
 
 
 def _require_image_ownership(image_id: str) -> dict:
+    
     image = image_service.get_image_by_id(image_id)
+    
     if str(image.get("user_id")) != str(g.user_id):
+        
         raise ForbiddenException(
             message="You do not have permission to access this image",
             error_code="IMAGE_ACCESS_DENIED",
@@ -50,8 +54,11 @@ def _require_image_ownership(image_id: str) -> dict:
 
 
 def _require_location_ownership(location_id: str) -> None:
+    
     location = location_service.get_location_by_id(location_id)
+    
     if str(location.get("user_id")) != str(g.user_id):
+        
         raise ForbiddenException(
             message="You do not have permission to access images for this location",
             error_code="LOCATION_IMAGES_ACCESS_DENIED",
