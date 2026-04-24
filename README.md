@@ -517,6 +517,18 @@ pytest --cov=app tests/
 docker build -t fractorust-ai:latest .
 ```
 
+### MongoDB Access
+If you want to inspect the database directly:
+
+```bash
+docker exec -it mongorust bash
+mongosh
+```
+
+- MongoDB is exposed on host port `27018`
+- Inside the compose network, the MongoDB service name is `mongorust`
+- From the backend container, the database is reached through `mongorust:27017`
+
 ### Access API Documentation
 Once running, visit `http://localhost:5000/api/v1/health` to verify connectivity.
 
