@@ -31,40 +31,7 @@ def get_image(image_id):
         401: Unauthorized (missing/invalid JWT token)
         404: Image not found
         500: Server error
-    
-    Example Response (200):
-        {
-            "status": "success",
-            "status_code": 200,
-            "message": "Image retrieved successfully",
-            "data": {
-                "_id": "507f1f77bcf86cd799439011",
-                "filename": "inspection_001.jpg",
-                "user_id": "507f1f77bcf86cd799439012",
-                ...
-            }
-        }
-    
-    Example Response (404):
-        {
-            "status": "error",
-            "status_code": 404,
-            "error_code": "NOT_FOUND",
-            "message": "Image not found (ID: invalid_id)",
-            "details": {}
-        }
-    
-    Example Response (400):
-        {
-            "status": "error",
-            "status_code": 400,
-            "error_code": "INVALID_OBJECT_ID",
-            "message": "Invalid ObjectId format for field 'image_id': abc123",
-            "details": {
-                "field": "image_id",
-                "value": "abc123"
-            }
-        }
+
     """
     # The service raises exceptions if there are errors
     # The decorator catches them and returns proper JSON responses

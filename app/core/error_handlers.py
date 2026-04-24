@@ -1,13 +1,34 @@
 
 import logging
 from functools import wraps
+from datetime import date, datetime
 from flask import jsonify
 from werkzeug.exceptions import HTTPException
+from bson import ObjectId
 
 from app.core.exceptions import APIException
 
 
 logger = logging.getLogger(__name__)
+
+
+def _json_safe(value):
+    """
+    Recursively convert common MongoDB / datetime values into JSON-safe types.
+    """
+    if isinstance(value, ObjectId):
+        return str(value)
+
+    if isinstance(value, (datetime, date)):
+        return value.isoformat()
+
+    if isinstance(value, dict):
+        return {key: _json_safe(item) for key, item in value.items()}
+
+    if isinstance(value, (list, tuple, set)):
+        return [_json_safe(item) for item in value]
+
+    return value
 
 
 def handle_api_exceptions(f):
@@ -73,13 +94,13 @@ def error_response(status_code: int, error_code: str, message: str, details: dic
         if not user:
             return error_response(404, "USER_NOT_FOUND", "User not found", {"user_id": user_id})
     """
-    return jsonify({
+    return jsonify(_json_safe({
         "status": "error",
         "status_code": status_code,
         "error_code": error_code,
         "message": message,
         "details": details or {}
-    }), status_code
+    })), status_code
 
 
 def success_response(data: dict = None, status_code: int = 200, message: str = "Success"):
@@ -98,9 +119,9 @@ def success_response(data: dict = None, status_code: int = 200, message: str = "
         image = image_service.get_image_by_id(image_id)
         return success_response(image, 200, "Image retrieved successfully")
     """
-    return jsonify({
+    return jsonify(_json_safe({
         "status": "success",
         "status_code": status_code,
         "message": message,
         "data": data or {}
-    }), status_code
+    })), status_code

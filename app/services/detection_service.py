@@ -102,42 +102,36 @@ class DetectionService:
             raise DatabaseException(operation="get_all_detection_by_user")
 
 
-    def get_detections_by_location(self, user_id: str, location_id: str) -> List[Dict[str, Any]]:
+    def get_detections_by_location(self, location_id: str) -> List[Dict[str, Any]]:
         """
-        Retrieves all detection documents for a specific user and location.
+        Retrieves all detection documents associated with a specific location.
 
         Args:
-            user_id (str): The string representation of the user's ObjectId.
             location_id (str): The string representation of the location's ObjectId.
 
         Returns:
             List[Dict[str, Any]]: A list of serialized detection documents.
-            
+
         Raises:
-            InvalidObjectIdException: If user_id or location_id is not a valid ObjectId format.
+            InvalidObjectIdException: If location_id is not a valid ObjectId format.
             DatabaseException: If a database error occurs.
         """
         try:
-            user_obj_id = ObjectId(user_id)
             location_obj_id = ObjectId(location_id)
             
-        except InvalidId as e:
+        except InvalidId:
             
-            invalid_id = user_id if "user_id" in str(e) else location_id
-            field = "user_id" if invalid_id == user_id else "location_id"
-            
-            logger.warning(f"Invalid ObjectId format provided for {field}: {invalid_id}")
-            raise InvalidObjectIdException(field=field, value=invalid_id)
+            logger.warning(f"Invalid Location ObjectId format provided: {location_id}")
+            raise InvalidObjectIdException(field="location_id", value=location_id)
         
         try:
-            query = {"user_id": user_obj_id, "location_id": location_obj_id}
+            query = {"location_id": location_obj_id}
             cursor = self.collection.find(query)
             detections = [DetectionDocument.from_dict(document).to_dict() for document in cursor]
             return detections
         
         except Exception as e:
-            
-            logger.error(f"Error fetching detections by user {user_id} and location {location_id}: {e}")
+            logger.error(f"Error fetching detections by location {location_id}: {e}")
             raise DatabaseException(operation="get_detections_by_location")
 
 

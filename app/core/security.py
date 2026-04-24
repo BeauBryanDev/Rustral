@@ -1,6 +1,6 @@
 import logging
-from datetime import datetime, timedelta
-from typing import Any, Union, Optional
+from datetime import datetime, timedelta, timezone
+from typing import Optional, Dict, Any
 
 from jose import jwt, JWTError
 from passlib.context import CryptContext
@@ -9,65 +9,81 @@ from app.config import Config
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 algorithm = Config.JWT_ALGORITHM
-access_token_expires = timedelta(minutes=Config.JWT_ACCESS_TOKEN_EXPIRES)
-refresh_token_expires = timedelta(days=Config.JWT_REFRESH_TOKEN_EXPIRES)
+access_token_expires = timedelta(seconds=Config.JWT_ACCESS_TOKEN_EXPIRES)
+refresh_token_expires = timedelta(seconds=Config.JWT_REFRESH_TOKEN_EXPIRES)
 
 
-def create_access_token(data: dict, expires_delta: Optional[timedelta] = access_token_expires):
+def _create_token_payload(
+    subject: str,
+    expires_delta: Optional[timedelta],
+    token_type: str,
+    extra_claims: Optional[Dict[str, Any]] = None,
+) -> dict:
+    now = datetime.now(timezone.utc)
+    expire_at = now + (expires_delta or access_token_expires if token_type == "access" else refresh_token_expires)
+
+    payload = {
+        "sub": subject,
+        "iat": now,
+        "exp": expire_at,
+        "token_type": token_type,
+    }
+
+    if extra_claims:
+        payload.update(extra_claims)
+
+    return payload
+
+
+def create_access_token(
+    subject: str,
+    extra_claims: Optional[Dict[str, Any]] = None,
+    expires_delta: Optional[timedelta] = access_token_expires,
+):
     """
     Generates a JWT access token.
     
     Args:
-        data (dict): The data to include in the JWT payload.
+        subject (str): The subject claim, usually the authenticated user id.
+        extra_claims (Optional[Dict[str, Any]]): Additional JWT claims.
         expires_delta (Optional[timedelta]): The expiration time for the JWT.
         
     Returns:
         str: The JWT access token.
     """
-    to_encode = data.copy()
-    
-    if expires_delta:
-        
-        expire = datetime.utcnow() + expires_delta
-        
-        # If the access token is valid for the next hour, keep it for that long
-    else:
-        expire = datetime.utcnow() + access_token_expires
-        
-    to_encode.update({"exp": expire})
-    
-    encoded_jwt = jwt.encode(to_encode, Config.JWT_SECRET_KEY, algorithm=algorithm)
-    
-    return encoded_jwt
+    payload = _create_token_payload(
+        subject=subject,
+        expires_delta=expires_delta,
+        token_type="access",
+        extra_claims=extra_claims,
+    )
+    return jwt.encode(payload, Config.JWT_SECRET_KEY, algorithm=algorithm)
 
 # TODO: Implement these in blueprints managements and auth managements flask blueprints
 
-def create_refresh_token(data: dict, expires_delta: Optional[timedelta] = refresh_token_expires):
+def create_refresh_token(
+    subject: str,
+    extra_claims: Optional[Dict[str, Any]] = None,
+    expires_delta: Optional[timedelta] = refresh_token_expires,
+):
     """  
     Generates a JWT refresh token.
     
     Args:
-        data (dict): The data to include in the JWT payload.
+        subject (str): The subject claim, usually the authenticated user id.
+        extra_claims (Optional[Dict[str, Any]]): Additional JWT claims.
         expires_delta (Optional[timedelta]): The expiration time for the JWT.
 
     Returns:
         str: The JWT refresh token.
     """
-    to_encode = data.copy()
-    
-    if expires_delta:
-        
-        expire = datetime.utcnow() + expires_delta
-        
-    else:
-        expire = datetime.utcnow() + refresh_token_expires
-        
-        
-    to_encode.update({"exp": expire})
-    
-    encoded_jwt = jwt.encode(to_encode, Config.JWT_SECRET_KEY, algorithm=algorithm)
-    
-    return encoded_jwt
+    payload = _create_token_payload(
+        subject=subject,
+        expires_delta=expires_delta,
+        token_type="refresh",
+        extra_claims=extra_claims,
+    )
+    return jwt.encode(payload, Config.JWT_SECRET_KEY, algorithm=algorithm)
 
 def verify_password(plain_password, hashed_password):
     """  
@@ -107,15 +123,10 @@ def verify_jwt(token: str):
         dict: The decoded payload if valid, None otherwise.
     """
     try:
-        
         payload = jwt.decode(token, Config.JWT_SECRET_KEY, algorithms=[algorithm])
-        
         return payload
-    
     except JWTError as e:
-        
-        logging.error(f"Error al verif  icar el token JWT: {e}")
-        
+        logging.error(f"Error verifying JWT token: {e}")
         return None
     
     
@@ -130,14 +141,8 @@ def decode_access_token(token: str) -> Optional[dict]:
         Optional[dict]: The token payload if valid, None otherwise.
     """
     try:
-        
-        decoded_token = jwt.decode(token, Config.SECRET_KEY, algorithms=[algorithm])
-        
-        return decoded_token if decoded_token["exp"] >= datetime.utcnow().timestamp() else None
-    
+        decoded_token = jwt.decode(token, Config.JWT_SECRET_KEY, algorithms=[algorithm])
+        return decoded_token
     except JWTError as error:
-        
         logging.error(f"Token decoding failed: {error}")
-        
         return None
-        
