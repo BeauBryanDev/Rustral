@@ -4,7 +4,9 @@
 
 FractoRust-AI is a sophisticated AI-powered platform designed to detect, quantify, and analyze rust corrosion on metal surfaces in real-time. Leveraging advanced machine learning models (YOLO v8 with instance segmentation), ArUco marker metrology, and fractal dimension analysis, the system provides precise measurements and severity assessments for industrial inspection workflows.
 
----
+<div align="center">
+  <img src="fractal_rust_icon.svg" alt="Rustral Fractal Icon" width="160px" />
+</div>
 
 ## Key Features
 
@@ -12,10 +14,10 @@ FractoRust-AI is a sophisticated AI-powered platform designed to detect, quantif
 - **Precise Spatial Quantification**: ArUco marker calibration enables pixel-to-metric conversion for accurate area measurements
 - **Fractal Dimension Analysis**: Minkowski-Bouligand box-counting algorithm assesses geometric complexity and corrosion severity
 - **Audit-Ready Data**: Complete detection metadata including confidence scores, pixel counts, and computed areas
-- **Async MongoDB Integration**: Non-blocking database operations with Motor for high-throughput scenarios
+- **Synchronous MongoDB Integration**: Standard `pymongo` database access for CRUD and analytics
 - **JWT Authentication**: Secure REST API with token-based access control
 - **Docker-Ready**: Fully containerized deployment pipeline with Docker Compose
-- **Comprehensive Testing**: Unit tests with pytest, async support, and coverage tracking
+- **Comprehensive Testing**: Unit tests with pytest and coverage tracking
 
 ---
 
@@ -40,7 +42,7 @@ FractoRust-AI is a sophisticated AI-powered platform designed to detect, quantif
 └────────┬─────────┘  └───────────────────┘
          │
     ┌────▼─────────────────┐
-    │  MongoDB (Motor)     │
+    │  MongoDB (pymongo)   │
     │  - Users             │
     │  - Locations         │
     │  - Images            │
@@ -52,10 +54,10 @@ FractoRust-AI is a sophisticated AI-powered platform designed to detect, quantif
 
 **Backend**
 - Flask 3.0.3 - Lightweight web framework
-- Motor 3.4.0 - Async MongoDB driver
+- pymongo 4.7.2 - Synchronous MongoDB driver
 - ONNX Runtime 1.19.2 - ML model inference (GPU/CPU)
 - OpenCV 4.10.0 - Image processing
-- Flask-JWT-Extended 4.6.0 - JWT authentication
+- JWT helpers built on `python-jose`
 - Gunicorn 22.0.0 - Production WSGI server
 
 **Frontend** (Pending)
@@ -112,31 +114,31 @@ FractoRust-AI is a sophisticated AI-powered platform designed to detect, quantif
    JWT_SECRET_KEY=your_jwt_secret_key
    JWT_ALGORITHM=HS256
    JWT_ACCESS_TOKEN_EXPIRES=3600
-   JWT_REFRESH_TOKEN_EXPIRES=2592000
+   JWT_REFRESH_TOKEN_EXPIRES=86400
 
    # MongoDB
    MONGODB_URI=mongodb://localhost:27017
-   MONGODB_DB=fractorust
+   MONGODB_DB=rust_db
    MONGODB_USERNAME=user
    MONGODB_PASSWORD=password
    MONGODB_AUTH_SOURCE=admin
 
    # Vision Model
-   ONNX_MODEL_PATH=./ml/rust_detector_yolo.onnx
-   ONNX_MODEL_NAME=rust_detector
+   ONNX_MODEL_PATH=ml/rust_detector_yolo.onnx
+   ONNX_MODEL_NAME=rust_detector_yolo
    ONNX_MODEL_INPUT_NAME=images
-   ONNX_MODEL_OUTPUT_NAME=output
+   ONNX_MODEL_OUTPUT_NAME=output0
 
    # File Uploads
-   UPLOAD_FOLDER=./outputs
-   MODEL_PATH=./ml
+   UPLOAD_FOLDER=outputs
+   MODEL_PATH=ml/rust_detector_yolo.onnx
    ```
 
 5. **Run the application**
    ```bash
-   python app/wsgi.py
+   python app/app.py
    # or with Gunicorn
-   gunicorn --bind 0.0.0.0:5000 --workers 4 app.wsgi:app
+   gunicorn --factory --bind 0.0.0.0:5000 --workers 2 --threads 4 app.app:create_app
    ```
 
 ---
@@ -146,20 +148,27 @@ FractoRust-AI is a sophisticated AI-powered platform designed to detect, quantif
 ### Quick Start with Docker Compose
 
 ```bash
-# Build and start all services
-docker-compose up --build
-
-# Services will be available at:
-# Backend API: http://localhost:5000
-# MongoDB: localhost:27017
+docker compose up --build
 ```
 
-### Docker Compose Configuration
+Services:
+- Backend API: `http://localhost:5000`
+- MongoDB on host: `localhost:27018`
+- MongoDB inside the compose network: `mongorust:27017`
 
-The `docker-compose.yml` orchestrates:
-- **Flask Backend**: Python application with API endpoints
-- **MongoDB**: Document database for persistence
-- **volumes**: Mounted outputs folder for result storage
+### Compose Layout
+
+The `docker-compose.yml` file provides:
+- `rustral-api` for the Flask backend
+- `mongorust` for MongoDB persistence
+- `rsutnet` as the shared bridge network
+- A bind mount for `outputs/` so generated images are preserved on the host
+- A baked-in ONNX model inside the backend image
+
+### Environment Notes
+
+The compose file reads `.env` values, then overrides the runtime Mongo URI so the backend connects to the containerized database instead of `localhost`.
+The host Mongo port is mapped to `27018` to avoid conflicts with any other local MongoDB instance.
 
 ---
 
@@ -168,31 +177,53 @@ The `docker-compose.yml` orchestrates:
 ### Authentication
 - `POST /api/v1/auth/register` - Register new user
 - `POST /api/v1/auth/login` - Login and obtain JWT token
-- `POST /api/v1/auth/refresh` - Refresh access token
+
+### Users
+- `POST /api/v1/users/` - Create a user
+- `GET /api/v1/users/<user_id>` - Retrieve a user by ID
+- `GET /api/v1/users/email/<email>` - Retrieve a user by email
+- `PUT /api/v1/users/<user_id>` - Replace user fields
+- `PATCH /api/v1/users/<user_id>` - Partially update a user
+- `DELETE /api/v1/users/<user_id>` - Delete a user
 
 ### Detections
 - `POST /api/v1/detections/analyze` - Submit image for corrosion analysis
-- `GET /api/v1/detections/<id>` - Retrieve detection results
-- `GET /api/v1/detections` - List all detections (paginated)
-- `DELETE /api/v1/detections/<id>` - Remove detection record
+- `GET /api/v1/detections/<detection_id>` - Retrieve a detection by ID
+- `GET /api/v1/detections/user/<user_id>` - Retrieve detections for the authenticated user
+- `GET /api/v1/detections/location/<location_id>` - Retrieve detections for an owned location
+- `GET /api/v1/detections/image/<image_id>` - Retrieve detections for an owned image
+- `GET /api/v1/detections/severity/<severity>` - Retrieve detections by severity
+- `DELETE /api/v1/detections/<detection_id>` - Remove a detection record
 
 ### Images
-- `POST /api/v1/images/upload` - Upload image for analysis
-- `GET /api/v1/images/<id>` - Retrieve image metadata
-- `GET /api/v1/images` - List uploaded images
+- `GET /api/v1/images/<image_id>` - Retrieve an image by ID
+- `GET /api/v1/images/user/me` - Retrieve the authenticated user's images
+- `GET /api/v1/images/location/<location_id>` - Retrieve images for an owned location
+- `GET /api/v1/images/` - List all images for admin users
+- `DELETE /api/v1/images/<image_id>` - Delete an image
 
 ### Locations
-- `POST /api/v1/locations` - Create inspection location
-- `GET /api/v1/locations/<id>` - Get location details
-- `PUT /api/v1/locations/<id>` - Update location
-- `GET /api/v1/locations` - List all locations
+- `POST /api/v1/locations/` - Create an inspection location
+- `GET /api/v1/locations/<location_id>` - Get location details
+- `GET /api/v1/locations/user/me` - Retrieve the authenticated user's locations
+- `PUT /api/v1/locations/<location_id>` - Replace location fields
+- `PATCH /api/v1/locations/<location_id>` - Partially update a location
+- `DELETE /api/v1/locations/<location_id>` - Delete a location
 
 ### Analytics
-- `GET /api/v1/analytics/summary` - Aggregate detection statistics
-- `GET /api/v1/analytics/trends` - Historical analysis data
+- `GET /api/v1/analytics/summary` - Admin-only system summary
+- `GET /api/v1/analytics/user/me` - Current user analytics
+- `GET /api/v1/analytics/location/<location_id>` - Location analytics for an owned location
+- `GET /api/v1/analytics/severity-distribution` - Current user severity distribution
+- `GET /api/v1/analytics/detections/fractal-dimension` - User detections filtered by fractal dimension
+- `GET /api/v1/analytics/last-detections` - Current user's last detections
+- `GET /api/v1/analytics/admin/recent-detections` - Admin-only recent detections
+- `GET /api/v1/analytics/recent-detections` - Admin-only compatibility alias
 
 ### Health
 - `GET /api/v1/health` - System status check
+- `GET /api/v1/health/db` - Database connection status
+- `GET /api/v1/version` - API version information
 
 ---
 
@@ -261,8 +292,8 @@ pytest --cov=app tests/
 # Run specific test file
 pytest tests/test_endpoints.py -v
 
-# Run async tests
-pytest tests/test_services.py --asyncio-mode=auto -v
+# Run the test suite
+pytest tests/test_services.py -v
 ```
 
 ### Test Files
@@ -279,9 +310,14 @@ pytest tests/test_services.py --asyncio-mode=auto -v
 {
   "_id": ObjectId,
   "email": "user@example.com",
-  "hashed_password": "bcrypt_hash",
+  "hash_password": "bcrypt_hash",
   "full_name": "User Name",
-  "role": "inspector",
+  "gender": "male",
+  "phone_number": "+1...",
+  "country": "USA",
+  "city": "Austin",
+  "is_active": true,
+  "is_admin": false,
   "created_at": ISODate,
   "updated_at": ISODate
 }
@@ -292,10 +328,13 @@ pytest tests/test_services.py --asyncio-mode=auto -v
 {
   "_id": ObjectId,
   "user_id": ObjectId,
-  "name": "Building A - Section B",
-  "description": "Metal surface area prone to corrosion",
-  "coordinates": { "latitude": 0.0, "longitude": 0.0 },
-  "created_at": ISODate
+  "name": "Factory A",
+  "city": "Austin",
+  "country": "USA",
+  "address": "100 Industrial Way",
+  "description": "Main inspection site",
+  "created_at": ISODate,
+  "updated_at": ISODate
 }
 ```
 
@@ -305,9 +344,14 @@ pytest tests/test_services.py --asyncio-mode=auto -v
   "_id": ObjectId,
   "user_id": ObjectId,
   "location_id": ObjectId,
-  "filename": "inspection_20240421.jpg",
-  "s3_path": "s3://bucket/images/...",
-  "uploaded_at": ISODate
+  "stored_filename": "inspection_20240421.jpg",
+  "stored_path": "outputs/mask_loc_....jpg",
+  "mime_type": "image/jpeg",
+  "size_bytes": 123456,
+  "width_px": 640,
+  "height_px": 640,
+  "total_detections": 3,
+  "created_at": ISODate
 }
 ```
 
@@ -321,7 +365,7 @@ pytest tests/test_services.py --asyncio-mode=auto -v
   "detections": [...],
   "aruco_metadata": {...},
   "inference_time_ms": 145.23,
-  "analyzed_at": ISODate
+  "detected_at": ISODate
 }
 ```
 
@@ -342,13 +386,12 @@ pytest tests/test_services.py --asyncio-mode=auto -v
 
 ### Vision Service
 - **CUDA Support**: Automatically utilizes GPU if available
-- **Async I/O**: Non-blocking database operations with Motor
 - **Model Caching**: ONNX session loaded once at startup
 - **Batch Processing**: Support for multiple image analysis
 
 ### Database
-- **Indexing**: Recommended indexes on `user_id`, `location_id`, `timestamp`
-- **Connection Pooling**: Motor handles async connection management
+- **Indexing**: Recommended indexes on `user_id`, `location_id`, `detected_at`
+- **Connection Pooling**: Handled by `pymongo`
 
 ### Inference
 - **Average Inference Time**: ~145ms per image (GPU-accelerated)
@@ -363,7 +406,7 @@ FractoRust-AI/
 ├── app/
 │   ├── __init__.py
 │   ├── config.py                 # Configuration management
-│   ├── wsgi.py                   # WSGI entry point
+│   ├── app.py                    # Flask application factory / local entrypoint
 │   ├── core/
 │   │   ├── database.py           # MongoDB connection
 │   │   ├── logging.py            # Logging setup
@@ -383,7 +426,7 @@ FractoRust-AI/
 │   ├── services/                 # Business logic
 │   │   ├── vision_service.py     # YOLO + ArUco pipeline
 │   │   ├── fractal_service.py    # Dimension calculation
-│   │   └── mongo_db_service.py   # Database operations
+│   │   └── mongo_db_service.py   # Database helper wrapper
 │   └── utils/
 │       └── image_utils.py        # Image processing utilities
 ├── ml/
@@ -414,11 +457,11 @@ FractoRust-AI/
 | Variable | Default | Purpose |
 |----------|---------|---------|
 | `MONGODB_URI` | - | MongoDB connection string |
-| `MONGODB_DB` | `fractorust` | Default database name |
-| `ONNX_MODEL_PATH` | `./ml/rust_detector_yolo.onnx` | Path to YOLO model |
+| `MONGODB_DB` | `rust_db` | Default database name |
+| `ONNX_MODEL_PATH` | `ml/rust_detector_yolo.onnx` | Path to YOLO model |
 | `ARUCO_REAL_SIZE` | `30.00` | ArUco reference marker size in cm |
 | `JWT_ACCESS_TOKEN_EXPIRES` | `3600` | Token expiry in seconds (1 hour) |
-| `UPLOAD_FOLDER` | `./outputs` | Directory for storing results |
+| `UPLOAD_FOLDER` | `outputs` | Directory for storing results |
 
 ---
 
@@ -461,7 +504,7 @@ GitHub: [@BeauBryanDev](https://github.com/BeauBryanDev)
 ### Start Development Server
 ```bash
 source venv/bin/activate
-python -m flask run --debug
+python app/app.py
 ```
 
 ### Run Tests
@@ -479,5 +522,5 @@ Once running, visit `http://localhost:5000/api/v1/health` to verify connectivity
 
 ---
 
-**Last Updated**: April 2024  
+**Last Updated**: April 2026  
 **Status**: Active Development
