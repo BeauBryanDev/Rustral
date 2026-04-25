@@ -1,4 +1,7 @@
-# FractoRust-AI
+# Rustral Fractal
+
+![CI](https://github.com/BeauBryanDev/SmartCrackLens/actions/workflows/main.yml/badge.svg)
+
 
 **An Industrial Computer Vision System for Automated Corrosion Detection and Analysis**
 
@@ -172,7 +175,7 @@ The host Mongo port is mapped to `27018` to avoid conflicts with any other local
 
 ---
 
-## 🔌 API Endpoints
+## API Endpoints
 
 ### Authentication
 - `POST /api/v1/auth/register` - Register new user

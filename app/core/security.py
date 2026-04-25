@@ -33,6 +33,7 @@ def _create_token_payload(
     }
 
     if extra_claims:
+        
         payload.update(extra_claims)
 
     return payload
@@ -62,7 +63,6 @@ def create_access_token(
     )
     return jwt.encode(payload, Config.JWT_SECRET_KEY, algorithm=algorithm)
 
-# TODO: Implement these in blueprints managements and auth managements flask blueprints
 
 def create_refresh_token(
     subject: str,
@@ -88,6 +88,7 @@ def create_refresh_token(
     )
     return jwt.encode(payload, Config.JWT_SECRET_KEY, algorithm=algorithm)
 
+
 def verify_password(plain_password, hashed_password):
     """  
     Verifies a plain text password against a hashed password. 
@@ -101,6 +102,7 @@ def verify_password(plain_password, hashed_password):
     """ 
     
     return pwd_context.verify(plain_password, hashed_password)
+
 
 def get_password_hash(password):
     """
@@ -127,9 +129,13 @@ def verify_jwt(token: str):
     """
     try:
         payload = jwt.decode(token, Config.JWT_SECRET_KEY, algorithms=[algorithm])
+        
         return payload
+    
     except JWTError as e:
+        
         logging.error(f"Error verifying JWT token: {e}")
+        
         return None
     
     
@@ -145,7 +151,11 @@ def decode_access_token(token: str) -> Optional[dict]:
     """
     try:
         decoded_token = jwt.decode(token, Config.JWT_SECRET_KEY, algorithms=[algorithm])
+        
         return decoded_token
+    
     except JWTError as error:
+        
         logging.error(f"Token decoding failed: {error}")
+        
         return None

@@ -1,0 +1,23 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-space-gray text-white font-sans antialiased selection:bg-neon-cyan selection:text-space-gray;
+  }
+  
+  /* Custom scrollbar for an industrial terminal look */
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+  
+  ::-webkit-scrollbar-track {
+    @apply bg-space-gray;
+  }
+  
+  ::-webkit-scrollbar-thumb {
+    @apply bg-industrial-gray rounded-sm hover:bg-neon-cyan transition-colors;
+  }
+}
